@@ -1,0 +1,212 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Work Order – EXACT Mapping</title>
+
+<script src="https://cdn.tailwindcss.com"></script>
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+
+<style>
+  :root{ --accent:#0A66C2; --line:#e5e7eb }
+  body{
+    background: radial-gradient(1200px 800px at 30% -10%, #e6f0ff 0%, #ffffff 45%) no-repeat;
+  }
+  .card{ box-shadow: 0 10px 30px rgba(2,6,23,.08) }
+  .kv{ display:grid; grid-template-columns: 220px 1fr; gap:.35rem .75rem }
+  .kv dt{ color:#64748b }
+  .sec{ margin-top:1.25rem }
+  @media print{ #controls{display:none} .card{box-shadow:none} body{background:#fff} }
+</style>
+</head>
+<body class="text-slate-900">
+<header id="controls" class="sticky top-0 z-10 bg-white/85 backdrop-blur border-b border-slate-200">
+  <div class="max-w-6xl mx-auto px-4 py-3 flex gap-3 items-center">
+    <h1 class="text-xl font-semibold">Work Order – EXACT Mapping</h1>
+    <label class="ml-auto inline-flex items-center gap-3 px-3 py-2 rounded-xl border border-slate-300 hover:bg-slate-50 cursor-pointer">
+      <input id="file" type="file" accept=".xlsx,.xls" class="hidden">
+      <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M12 3v18m9-9H3"/></svg>
+      <span>Upload Excel</span>
+    </label>
+    <button id="printBtn" class="px-3 py-2 rounded-xl bg-[color:var(--accent)] text-white hover:opacity-90">Print / PDF</button>
+  </div>
+</header>
+
+<main class="max-w-6xl mx-auto px-4 py-6">
+  <div id="container" class="space-y-6">
+    <div class="text-slate-600">Upload <b>test2.xls</b> to display the records using the exact header names.</div>
+  </div>
+</main>
+
+<template id="tpl">
+  <section class="card border border-slate-200 rounded-2xl bg-white p-6">
+    <h2 class="text-2xl font-semibold tracking-tight">Header</h2>
+    <dl class="kv mt-2">
+      <dt>Work Order Number</dt><dd data-k="WorkOrderNumber"></dd>
+      <dt>Type</dt><dd data-k="Type"></dd>
+      <dt>Created Date</dt><dd data-k="CreatedDate"></dd>
+      <dt>Created By</dt><dd data-k="CreatedBy"></dd>
+      <dt>Status</dt><dd data-k="Status"></dd>
+    </dl>
+
+    <h3 class="sec text-sm font-semibold text-slate-500 uppercase">Account</h3>
+    <dl class="kv mt-2">
+      <dt>Account Number</dt><dd data-k="AccountNumber"></dd>
+      <dt>Day Phone</dt><dd data-k="DayPhone"></dd>
+      <dt>Wanted</dt><dd data-k="Wanted"></dd>
+      <dt>AM/PM</dt><dd data-k="AMPM"></dd>
+      <dt>Caller Name</dt><dd data-k="CallerName"></dd>
+      <dt>Priority</dt><dd data-k="Priority"></dd>
+    </dl>
+
+    <h3 class="sec text-sm font-semibold text-slate-500 uppercase">Service Address</h3>
+    <dl class="kv mt-2">
+      <dt>Service Name</dt><dd data-k="ServiceName"></dd>
+      <dt>Service Street</dt><dd data-k="ServiceStreet"></dd>
+      <dt>Service City</dt><dd data-k="ServiceCity"></dd>
+      <dt>Service State</dt><dd data-k="ServiceState"></dd>
+      <dt>Service Zip</dt><dd data-k="ServiceZip"></dd>
+    </dl>
+
+    <h3 class="sec text-sm font-semibold text-slate-500 uppercase">Comments</h3>
+    <dl class="kv mt-2">
+      <dt>Comments</dt><dd data-k="Comments"></dd>
+    </dl>
+
+    <h3 class="sec text-sm font-semibold text-slate-500 uppercase">Meter Information</h3>
+    <dl class="kv mt-2">
+      <dt>Meter</dt><dd data-k="Meter"></dd>
+      <dt>Utility</dt><dd data-k="Utility"></dd>
+      <dt>Route</dt><dd data-k="Route"></dd>
+      <dt>Seq.</dt><dd data-k="Seq"></dd>
+      <dt>Mult.</dt><dd data-k="Mult"></dd>
+      <dt>Dials</dt><dd data-k="Dials"></dd>
+      <dt>Rate</dt><dd data-k="Rate"></dd>
+      <dt>Read Date</dt><dd data-k="ReadDate"></dd>
+      <dt>Reading</dt><dd data-k="Reading"></dd>
+      <dt>Usage</dt><dd data-k="Usage"></dd>
+      <dt>Pressure</dt><dd data-k="Pressure"></dd>
+      <dt>Meter Location</dt><dd data-k="MeterLocation"></dd>
+    </dl>
+
+    <h3 class="sec text-sm font-semibold text-slate-500 uppercase">Dispatch</h3>
+    <dl class="kv mt-2">
+      <dt>Date</dt><dd data-k="Date"></dd>
+      <dt>Time</dt><dd data-k="Time"></dd>
+      <dt>Dispatcher</dt><dd data-k="Dispatcher"></dd>
+      <dt>Method</dt><dd data-k="Method"></dd>
+      <dt>Crew</dt><dd data-k="Crew"></dd>
+    </dl>
+  </section>
+</template>
+
+<script>
+/* EXACT mapping from your test2.xls structure */
+const MAP = {
+  // Header
+  WorkOrderNumber: "WorkNum",
+  Type: "tblWorkType.Descr",
+  CreatedDate: "CreateDt",
+  CreatedBy: "CreateBy",
+  Status: "tblWorkStat.Descr",
+
+  // Account
+  AccountNumber: "AcctNum",
+  DayPhone: "DayPhone",
+  Wanted: "WantedDt",
+  AMPM: "AM/PM",
+  CallerName: "Text128",
+  Priority: "Priority",
+
+  // Service Address
+  ServiceName: ["LastName","FirstName"],                   // join with space
+  ServiceStreet: ["OwnStrNum","OwnStrName"],               // join with space
+  ServiceCity: "OwnCity",
+  ServiceState: "OwnState",
+  ServiceZip: ["OwnZIP5","OwnZIP4"],                       // 93905 2406
+
+  // Comments
+  Comments: "Text194",
+
+  // Meter Information
+  Meter: "MeterNum",
+  Utility: "UtilType",
+  Route: "Route",
+  Seq: "Seq",
+  Mult: "ReadMult",
+  Dials: "Dials",
+  Rate: "UsageRate",
+  ReadDate: "",       // not in file
+  Reading: "",        // not in file
+  Usage: "",          // not in file
+  Pressure: "",       // not in file
+  MeterLocation: "Text196",
+
+  // Dispatch
+  Date: "DispDt",
+  Time: "DispTime",
+  Dispatcher: "DispID",
+  Method: "DispHow",
+  Crew: "DispCrew"
+};
+
+function getVal(row, key){
+  const map = MAP[key];
+  if (!map) return "";
+  if (Array.isArray(map)) {
+    const parts = map.map(k => row[k] ?? "").filter(Boolean);
+    if (key === "ServiceZip" && parts.length) {
+      // format ZIP + ZIP4 as "93905 2406" (only include ZIP4 if exists)
+      return parts[1] ? `${parts[0]} ${parts[1]}` : parts[0];
+    }
+    return parts.join(" ");
+  }
+  if (map === "") return ""; // explicitly absent
+  return row[map] ?? "";
+}
+
+function fmtMaybeDate(v){
+  if (v==null || v==="") return "";
+  if (typeof v === "number"){
+    const d = XLSX.SSF.parse_date_code(v);
+    if (d){
+      const js = new Date(Date.UTC(d.y||1970,(d.m||1)-1,d.d||1,d.H||0,d.M||0,Math.floor(d.S||0)));
+      const hasTime = (d.H||d.M||d.S);
+      return hasTime ? js.toLocaleString() : js.toLocaleDateString();
+    }
+  }
+  return String(v);
+}
+
+const $file = document.getElementById('file');
+const $container = document.getElementById('container');
+const $tpl = document.getElementById('tpl');
+document.getElementById('printBtn').addEventListener('click', ()=>window.print());
+
+$file.addEventListener('change', async (e)=>{
+  const f = e.target.files?.[0]; if(!f) return;
+  const data = await f.arrayBuffer();
+  const wb = XLSX.read(data, {type:'array'});
+  const ws = wb.Sheets[wb.SheetNames[0]];
+  const rows = XLSX.utils.sheet_to_json(ws, {defval:""});
+
+  $container.innerHTML = "";
+  rows.forEach(r=>{
+    const node = $tpl.content.cloneNode(true);
+    node.querySelectorAll('[data-k]').forEach(el=>{
+      const key = el.getAttribute('data-k');
+      let val = getVal(r, key);
+
+      // date-ish fields we want formatted
+      const DATE_KEYS = new Set(["CreatedDate","Wanted","Date","Time"]);
+      if (DATE_KEYS.has(key)) val = fmtMaybeDate(val);
+
+      el.textContent = val;
+    });
+    $container.appendChild(node);
+  });
+});
+</script>
+</body>
+</html>
