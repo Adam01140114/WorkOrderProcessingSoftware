@@ -4,11 +4,7 @@ const dotenv        = require('dotenv');
 const fetch         = require('node-fetch');
 dotenv.config();
 
-// WARNING: Using LIVE keys for local development is not recommended and will likely fail.
-const stripeSecretKey = process.env.STRIPE_SECRET_KEY;
-if (!stripeSecretKey) {
-  throw new Error('STRIPE_SECRET_KEY is not set in the environment. Please add it to your .env file.');
-}
+// Stripe functionality removed - no longer needed
 
 // AI Configuration
 const OPENAI_API_KEY = process.env.OPENAI_API_KEY;
@@ -36,7 +32,7 @@ for (const envVar of requiredFirebaseEnvVars) {
     throw new Error(`${envVar} is not set in the environment. Please add it to your .env file.`);
   }
 }
-const stripe = require('stripe')(stripeSecretKey);
+// Stripe package removed
 const admin         = require('firebase-admin');
 const bodyParser    = require('body-parser');
 const fileUpload    = require('express-fileupload');
@@ -698,114 +694,13 @@ app.post('/edit_pdf', async (req, res) => {
     .send(Buffer.from(edited));
 });
 
-// Add a new route for creating a Stripe Checkout Session
-app.post('/create-checkout-session', async (req, res) => {
-    const { priceId, formId } = req.body;
-    const YOUR_DOMAIN = 'http://localhost:8000'; // Replace with your domain
+// Stripe checkout session endpoint removed
 
-    if (!priceId || !formId) {
-        return res.status(400).send({ error: 'Price ID and Form ID are required.' });
-    }
+// Stripe cart checkout session endpoint removed
 
-    try {
-        const session = await stripe.checkout.sessions.create({
-            line_items: [{
-                price: priceId,
-                quantity: 1,
-            }],
-            mode: 'payment',
-            success_url: `${YOUR_DOMAIN}/example.html?payment=success&formId=${formId}&session_id={CHECKOUT_SESSION_ID}`,
-            cancel_url: `${YOUR_DOMAIN}/example.html?payment=cancelled`,
-        });
+// Stripe prices listing endpoint removed
 
-        res.send({ sessionId: session.id });
-    } catch (e) {
-        console.error("Stripe Error:", e);
-        res.status(500).send({ error: e.message });
-    }
-});
-
-// Add a new route for creating a Cart Checkout Session
-app.post('/create-cart-checkout-session', async (req, res) => {
-    console.log('Cart checkout session requested');
-    console.log('Request body:', req.body);
-    
-    const { cartItems, totalAmount } = req.body;
-    const YOUR_DOMAIN = 'http://localhost:8000'; // Replace with your domain
-
-    if (!cartItems || !Array.isArray(cartItems) || cartItems.length === 0) {
-        console.log('Error: No cart items provided');
-        return res.status(400).send({ error: 'Cart items are required.' });
-    }
-
-    try {
-        // Create line items from cart items
-        const lineItems = cartItems.map(item => ({
-            price: item.priceId, // Use the Stripe Price ID directly
-            quantity: 1,
-        }));
-
-        const session = await stripe.checkout.sessions.create({
-            line_items: lineItems,
-            mode: 'payment',
-            success_url: `${YOUR_DOMAIN}/Pages/cart.html?payment=success&session_id={CHECKOUT_SESSION_ID}`,
-            cancel_url: `${YOUR_DOMAIN}/Pages/cart.html?payment=cancelled`,
-            metadata: {
-                cartItems: JSON.stringify(cartItems.map(item => item.formId)),
-                totalAmount: totalAmount ? totalAmount.toString() : '',
-            },
-        });
-
-        console.log('Stripe session created successfully:', session.id);
-        res.send({ sessionId: session.id });
-    } catch (e) {
-        console.error("Stripe Cart Error:", e);
-        res.status(500).send({ error: e.message });
-    }
-});
-
-// List all Stripe prices (for debugging)
-app.get('/stripe-prices', async (req, res) => {
-    try {
-        console.log('Listing all Stripe prices...');
-        const prices = await stripe.prices.list({ limit: 10, active: true });
-        const priceList = prices.data.map(price => ({
-            id: price.id,
-            unit_amount: price.unit_amount,
-            currency: price.currency,
-            nickname: price.nickname,
-            active: price.active
-        }));
-        console.log(`Found ${priceList.length} prices`);
-        res.json({ prices: priceList });
-    } catch (e) {
-        console.error('Error listing Stripe prices:', e.message);
-        res.status(500).json({ error: 'Failed to list prices', details: e.message });
-    }
-});
-
-// Fetch Stripe price info by Price ID
-app.get('/stripe-price/:priceId', async (req, res) => {
-    try {
-        console.log(`Fetching Stripe price: ${req.params.priceId}`);
-        const price = await stripe.prices.retrieve(req.params.priceId, { expand: ['product'] });
-        console.log(`Price found: ${price.id}, amount: ${price.unit_amount}`);
-        res.json({
-            priceId: price.id,
-            unit_amount: price.unit_amount,
-            currency: price.currency,
-            product: price.product && price.product.name ? price.product.name : price.product.id,
-            nickname: price.nickname,
-        });
-    } catch (e) {
-        console.error(`Stripe price error for ${req.params.priceId}:`, e.message);
-        res.status(404).json({ 
-            error: 'Price not found', 
-            priceId: req.params.priceId,
-            details: e.message 
-        });
-    }
-});
+// Stripe price retrieval endpoint removed
 
 // Endpoint to email a PDF to the user
 app.post('/email-pdf', async (req, res) => {
