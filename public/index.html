@@ -748,10 +748,10 @@
           
           <!-- Send Bill Address -->
           <div class="grid cols-4" style="margin-top:10px">
-            <div class="field"><label for="send_bill_street">Send Bill - Street</label><input type="text" id="send_bill_street" name="send_bill_street" placeholder="Street address"></div>
-            <div class="field"><label for="send_bill_city">Send Bill - City</label><input type="text" id="send_bill_city" name="send_bill_city" value="Salinas" placeholder="City"></div>
-            <div class="field"><label for="send_bill_state">Send Bill - State</label><input type="text" id="send_bill_state" name="send_bill_state" value="CA" placeholder="State"></div>
-            <div class="field"><label for="send_bill_zip">Send Bill - ZIP</label><input type="text" id="send_bill_zip" name="send_bill_zip" placeholder="ZIP code"></div>
+            <div class="field"><label for="send_bill_street">Send Bill - Street</label><input type="text" id="send_bill_street" name="send_bill_street" placeholder="Street address" onchange="updateFullBillAddress()"></div>
+            <div class="field"><label for="send_bill_city">Send Bill - City</label><input type="text" id="send_bill_city" name="send_bill_city" value="Salinas" placeholder="City" onchange="updateFullBillAddress()"></div>
+            <div class="field"><label for="send_bill_state">Send Bill - State</label><input type="text" id="send_bill_state" name="send_bill_state" value="CA" placeholder="State" onchange="updateFullBillAddress()"></div>
+            <div class="field"><label for="send_bill_zip">Send Bill - ZIP</label><input type="text" id="send_bill_zip" name="send_bill_zip" placeholder="ZIP code" onchange="updateFullBillAddress()"></div>
           </div>
         </div>
 
@@ -922,6 +922,9 @@
         const day = String(today.getDate()).padStart(2, '0');
         dateInput.value = `${year}-${month}-${day}`;
       }
+      
+      // Set up today's date hidden field
+      setTodaysDate();
       
       // Set up hidden textbox functionality for radio buttons and checkboxes
       setupHiddenTextboxes();
@@ -1188,7 +1191,7 @@
                
                // Create single payment_method_textbox with the selected value
                const textboxId = 'payment_method_textbox';
-               const displayText = this.nextSibling.textContent.trim();
+               const displayText = this.nextSibling.textContent.trim().toUpperCase();
                createHiddenTextbox('payment_method', this.value, displayText);
              } else {
                // If this checkbox is unchecked, remove the payment method textbox
@@ -1221,6 +1224,49 @@
        
        hiddenField.value = fullAddress;
        console.log(`Updated full service address: "${fullAddress}"`);
+     }
+
+     // Update full bill address function
+     function updateFullBillAddress() {
+       const street = document.getElementById('send_bill_street').value || '';
+       const city = document.getElementById('send_bill_city').value || '';
+       const state = document.getElementById('send_bill_state').value || '';
+       const zip = document.getElementById('send_bill_zip').value || '';
+       
+       // Combine the address parts
+       const fullAddress = [street, city, state, zip].filter(part => part.trim()).join(', ');
+       
+       // Create or update the hidden textbox
+       let hiddenField = document.getElementById('full_bill_address');
+       if (!hiddenField) {
+         hiddenField = document.createElement('input');
+         hiddenField.type = 'hidden';
+         hiddenField.id = 'full_bill_address';
+         hiddenField.name = 'full_bill_address';
+         document.getElementById('customForm').appendChild(hiddenField);
+       }
+       
+       hiddenField.value = fullAddress;
+       console.log(`Updated full bill address: "${fullAddress}"`);
+     }
+
+     // Set today's date function
+     function setTodaysDate() {
+       const today = new Date();
+       const dateString = today.toISOString().split('T')[0]; // Format: YYYY-MM-DD
+       
+       // Create or update the hidden textbox
+       let hiddenField = document.getElementById('todays_date');
+       if (!hiddenField) {
+         hiddenField = document.createElement('input');
+         hiddenField.type = 'hidden';
+         hiddenField.id = 'todays_date';
+         hiddenField.name = 'todays_date';
+         document.getElementById('customForm').appendChild(hiddenField);
+       }
+       
+       hiddenField.value = dateString;
+       console.log(`Set today's date: "${dateString}"`);
      }
 
      // Update full name function
