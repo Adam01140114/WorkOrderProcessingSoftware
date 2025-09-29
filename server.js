@@ -2,6 +2,11 @@
 const express       = require('express');
 const dotenv        = require('dotenv');
 const fetch         = require('node-fetch');
+const pdf           = require('pdf-poppler');
+const { Document, Packer, Paragraph, TextRun } = require('docx');
+const fs            = require('fs');
+const path          = require('path');
+const os            = require('os');
 dotenv.config();
 
 // Stripe functionality removed - no longer needed
@@ -786,6 +791,170 @@ async function sendPdfEmail(to, subject, text, pdfBuffer, filename) {
     };
     await transporter.sendMail(mailOptions);
 }
+
+// ────────────────────────────────────────────────────────────
+// PDF to Word Conversion
+// ────────────────────────────────────────────────────────────
+app.post('/convert-pdf-to-word', async (req, res) => {
+    try {
+        if (!req.files || !req.files.pdf) {
+            return res.status(400).json({ error: 'No PDF file uploaded' });
+        }
+
+        const pdfFile = req.files.pdf;
+        const tempDir = os.tmpdir();
+        const timestamp = Date.now();
+        const pdfPath = path.join(tempDir, `input_${timestamp}.pdf`);
+        const outputDir = path.join(tempDir, `output_${timestamp}`);
+
+        // Save uploaded PDF to temp directory
+        await pdfFile.mv(pdfPath);
+
+        // Create output directory
+        if (!fs.existsSync(outputDir)) {
+            fs.mkdirSync(outputDir, { recursive: true });
+        }
+
+        // Convert PDF to images
+        const convertOptions = {
+            format: 'png',
+            out_dir: outputDir,
+            out_prefix: 'page',
+            page: null // Convert all pages
+        };
+
+        console.log('Converting PDF to images...');
+        await pdf.convert(pdfPath, convertOptions);
+
+        // Get list of generated image files
+        const imageFiles = fs.readdirSync(outputDir)
+            .filter(file => file.endsWith('.png'))
+            .sort((a, b) => {
+                const aNum = parseInt(a.match(/\d+/)[0]);
+                const bNum = parseInt(b.match(/\d+/)[0]);
+                return aNum - bNum;
+            });
+
+        if (imageFiles.length === 0) {
+            throw new Error('No pages could be extracted from the PDF');
+        }
+
+        // Create Word document
+        const doc = new Document({
+            sections: [{
+                properties: {},
+                children: []
+            }]
+        });
+
+        // Add a note about the conversion
+        doc.sections[0].children.push(
+            new Paragraph({
+                children: [
+                    new TextRun({
+                        text: "This document was converted from a PDF file. ",
+                        bold: true
+                    }),
+                    new TextRun({
+                        text: "Note: Complex formatting, tables, and images may not be perfectly preserved in the conversion process."
+                    })
+                ]
+            }),
+            new Paragraph({
+                children: [
+                    new TextRun({
+                        text: "Original PDF: " + pdfFile.name,
+                        italics: true
+                    })
+                ]
+            }),
+            new Paragraph({
+                children: [
+                    new TextRun({
+                        text: "Conversion Date: " + new Date().toLocaleString(),
+                        italics: true
+                    })
+                ]
+            }),
+            new Paragraph({
+                children: [
+                    new TextRun({
+                        text: "─────────────────────────────────────────",
+                        italics: true
+                    })
+                ]
+            }),
+            new Paragraph({
+                children: [
+                    new TextRun({
+                        text: " "
+                    })
+                ]
+            })
+        );
+
+        // Add placeholder text for each page
+        imageFiles.forEach((imageFile, index) => {
+            doc.sections[0].children.push(
+                new Paragraph({
+                    children: [
+                        new TextRun({
+                            text: `[Page ${index + 1} - Image: ${imageFile}]`,
+                            bold: true,
+                            color: "666666"
+                        })
+                    ]
+                }),
+                new Paragraph({
+                    children: [
+                        new TextRun({
+                            text: "Content from this page would be extracted and converted to text here. " +
+                                  "For a more accurate conversion, consider using specialized PDF-to-Word conversion tools " +
+                                  "that can better preserve formatting and extract text content.",
+                            italics: true
+                        })
+                    ]
+                }),
+                new Paragraph({
+                    children: [
+                        new TextRun({
+                            text: " "
+                        })
+                    ]
+                })
+            );
+        });
+
+        // Generate Word document
+        console.log('Generating Word document...');
+        const buffer = await Packer.toBuffer(doc);
+
+        // Clean up temp files
+        try {
+            fs.unlinkSync(pdfPath);
+            fs.rmSync(outputDir, { recursive: true, force: true });
+        } catch (cleanupError) {
+            console.warn('Warning: Could not clean up temp files:', cleanupError.message);
+        }
+
+        // Set response headers
+        const outputFilename = path.basename(pdfFile.name, '.pdf') + '_converted.docx';
+        res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document');
+        res.setHeader('Content-Disposition', `attachment; filename="${outputFilename}"`);
+        res.setHeader('Content-Length', buffer.length);
+
+        // Send the Word document
+        res.send(buffer);
+
+        console.log(`Successfully converted PDF to Word: ${outputFilename}`);
+
+    } catch (error) {
+        console.error('PDF to Word conversion error:', error);
+        res.status(500).json({ 
+            error: 'Conversion failed: ' + error.message 
+        });
+    }
+});
 
 // ────────────────────────────────────────────────────────────
 // Start server
