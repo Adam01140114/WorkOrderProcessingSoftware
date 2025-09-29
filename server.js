@@ -2,10 +2,8 @@
 const express       = require('express');
 const dotenv        = require('dotenv');
 const fetch         = require('node-fetch');
-const pdf           = require('pdf-poppler');
 const { Document, Packer, Paragraph, TextRun } = require('docx');
-const fs            = require('fs');
-const path          = require('path');
+const pdfParse      = require('pdf-parse');
 const os            = require('os');
 dotenv.config();
 
@@ -46,8 +44,6 @@ const { PDFDocument, StandardFonts } = require('pdf-lib');
 const cors          = require('cors');
 const fs            = require('fs');
 const nodemailer    = require('nodemailer');
-
-dotenv.config();
 
 const app = express();
 app.use(bodyParser.json());
@@ -797,74 +793,40 @@ async function sendPdfEmail(to, subject, text, pdfBuffer, filename) {
 // ────────────────────────────────────────────────────────────
 app.post('/convert-pdf-to-word', async (req, res) => {
     try {
-        if (!req.files || !req.files.pdf) {
+        console.log('PDF conversion request received');
+        
+        if (!req.files) {
+            console.log('No files in request');
+            return res.status(400).json({ error: 'No files uploaded' });
+        }
+        
+        if (!req.files.pdf) {
+            console.log('No PDF file in request');
             return res.status(400).json({ error: 'No PDF file uploaded' });
         }
 
         const pdfFile = req.files.pdf;
-        const tempDir = os.tmpdir();
-        const timestamp = Date.now();
-        const pdfPath = path.join(tempDir, `input_${timestamp}.pdf`);
-        const outputDir = path.join(tempDir, `output_${timestamp}`);
+        
+        console.log(`Processing PDF: ${pdfFile.name} (${pdfFile.size} bytes)`);
 
-        // Save uploaded PDF to temp directory
-        await pdfFile.mv(pdfPath);
+        // Extract text from PDF
+        console.log('Extracting text from PDF...');
+        const pdfData = await pdfParse(pdfFile.data);
+        
+        console.log(`Extracted ${pdfData.text.length} characters from PDF`);
+        console.log(`PDF has ${pdfData.numpages} pages`);
 
-        // Create output directory
-        if (!fs.existsSync(outputDir)) {
-            fs.mkdirSync(outputDir, { recursive: true });
-        }
+        // Create Word document with extracted content
+        const children = [];
 
-        // Convert PDF to images
-        const convertOptions = {
-            format: 'png',
-            out_dir: outputDir,
-            out_prefix: 'page',
-            page: null // Convert all pages
-        };
-
-        console.log('Converting PDF to images...');
-        await pdf.convert(pdfPath, convertOptions);
-
-        // Get list of generated image files
-        const imageFiles = fs.readdirSync(outputDir)
-            .filter(file => file.endsWith('.png'))
-            .sort((a, b) => {
-                const aNum = parseInt(a.match(/\d+/)[0]);
-                const bNum = parseInt(b.match(/\d+/)[0]);
-                return aNum - bNum;
-            });
-
-        if (imageFiles.length === 0) {
-            throw new Error('No pages could be extracted from the PDF');
-        }
-
-        // Create Word document
-        const doc = new Document({
-            sections: [{
-                properties: {},
-                children: []
-            }]
-        });
-
-        // Add a note about the conversion
-        doc.sections[0].children.push(
+        // Add document header
+        children.push(
             new Paragraph({
                 children: [
                     new TextRun({
-                        text: "This document was converted from a PDF file. ",
-                        bold: true
-                    }),
-                    new TextRun({
-                        text: "Note: Complex formatting, tables, and images may not be perfectly preserved in the conversion process."
-                    })
-                ]
-            }),
-            new Paragraph({
-                children: [
-                    new TextRun({
-                        text: "Original PDF: " + pdfFile.name,
-                        italics: true
+                        text: "Converted from PDF: " + (pdfFile.name || 'Unknown'),
+                        bold: true,
+                        size: 24
                     })
                 ]
             }),
@@ -872,7 +834,15 @@ app.post('/convert-pdf-to-word', async (req, res) => {
                 children: [
                     new TextRun({
                         text: "Conversion Date: " + new Date().toLocaleString(),
-                        italics: true
+                        italics: true,
+                        size: 20
+                    })
+                ]
+            }),
+            new Paragraph({
+                children: [
+                    new TextRun({
+                        text: " "
                     })
                 ]
             }),
@@ -893,52 +863,184 @@ app.post('/convert-pdf-to-word', async (req, res) => {
             })
         );
 
-        // Add placeholder text for each page
-        imageFiles.forEach((imageFile, index) => {
-            doc.sections[0].children.push(
+        // Process the extracted text
+        if (pdfData.text && pdfData.text.trim().length > 0) {
+            // Split text into paragraphs (by double newlines or long lines)
+            const paragraphs = pdfData.text
+                .split(/\n\s*\n/) // Split by double newlines
+                .map(p => p.trim())
+                .filter(p => p.length > 0);
+
+            console.log(`Processing ${paragraphs.length} text paragraphs`);
+
+            // Add each paragraph to the document
+            paragraphs.forEach((paragraph, index) => {
+                // Skip very short paragraphs that might be artifacts
+                if (paragraph.length < 3) return;
+
+                // Clean up the paragraph text
+                const cleanText = paragraph
+                    .replace(/\s+/g, ' ') // Replace multiple spaces with single space
+                    .replace(/\n/g, ' ') // Replace newlines with spaces
+                    .trim();
+
+                if (cleanText.length > 0) {
+                    children.push(
+                        new Paragraph({
+                            children: [
+                                new TextRun({
+                                    text: cleanText,
+                                    size: 22
+                                })
+                            ]
+                        }),
+                        new Paragraph({
+                            children: [
+                                new TextRun({
+                                    text: " "
+                                })
+                            ]
+                        })
+                    );
+                }
+            });
+        } else {
+            // No text extracted, add a note
+            children.push(
                 new Paragraph({
                     children: [
                         new TextRun({
-                            text: `[Page ${index + 1} - Image: ${imageFile}]`,
-                            bold: true,
-                            color: "666666"
+                            text: "No text content could be extracted from this PDF.",
+                            italics: true,
+                            size: 20
                         })
                     ]
                 }),
                 new Paragraph({
                     children: [
                         new TextRun({
-                            text: "Content from this page would be extracted and converted to text here. " +
-                                  "For a more accurate conversion, consider using specialized PDF-to-Word conversion tools " +
-                                  "that can better preserve formatting and extract text content.",
-                            italics: true
+                            text: "This may be due to:",
+                            size: 20
                         })
                     ]
                 }),
                 new Paragraph({
                     children: [
                         new TextRun({
-                            text: " "
+                            text: "• The PDF contains only images",
+                            size: 18
+                        })
+                    ]
+                }),
+                new Paragraph({
+                    children: [
+                        new TextRun({
+                            text: "• The PDF is password protected",
+                            size: 18
+                        })
+                    ]
+                }),
+                new Paragraph({
+                    children: [
+                        new TextRun({
+                            text: "• The PDF uses non-standard text encoding",
+                            size: 18
+                        })
+                    ]
+                }),
+                new Paragraph({
+                    children: [
+                        new TextRun({
+                            text: "• The PDF is corrupted or damaged",
+                            size: 18
                         })
                     ]
                 })
             );
+        }
+
+        // Add footer information
+        children.push(
+            new Paragraph({
+                children: [
+                    new TextRun({
+                        text: " "
+                    })
+                ]
+            }),
+            new Paragraph({
+                children: [
+                    new TextRun({
+                        text: "─────────────────────────────────────────",
+                        italics: true
+                    })
+                ]
+            }),
+            new Paragraph({
+                children: [
+                    new TextRun({
+                        text: " "
+                    })
+                ]
+            }),
+            new Paragraph({
+                children: [
+                    new TextRun({
+                        text: "Document Information:",
+                        bold: true,
+                        size: 20
+                    })
+                ]
+            }),
+            new Paragraph({
+                children: [
+                    new TextRun({
+                        text: "• Original File: " + (pdfFile.name || 'Unknown'),
+                        size: 18
+                    })
+                ]
+            }),
+            new Paragraph({
+                children: [
+                    new TextRun({
+                        text: "• File Size: " + formatFileSize(pdfFile.size || 0),
+                        size: 18
+                    })
+                ]
+            }),
+            new Paragraph({
+                children: [
+                    new TextRun({
+                        text: "• Pages: " + (pdfData.numpages || 'Unknown'),
+                        size: 18
+                    })
+                ]
+            }),
+            new Paragraph({
+                children: [
+                    new TextRun({
+                        text: "• Characters Extracted: " + (pdfData.text ? pdfData.text.length : 0),
+                        size: 18
+                    })
+                ]
+            })
+        );
+
+        // Create the document with all children
+        const doc = new Document({
+            sections: [{
+                properties: {},
+                children: children
+            }]
         });
 
         // Generate Word document
         console.log('Generating Word document...');
         const buffer = await Packer.toBuffer(doc);
 
-        // Clean up temp files
-        try {
-            fs.unlinkSync(pdfPath);
-            fs.rmSync(outputDir, { recursive: true, force: true });
-        } catch (cleanupError) {
-            console.warn('Warning: Could not clean up temp files:', cleanupError.message);
-        }
-
         // Set response headers
-        const outputFilename = path.basename(pdfFile.name, '.pdf') + '_converted.docx';
+        const originalName = pdfFile.name || 'document';
+        const outputFilename = path.basename(originalName, '.pdf') + '_converted.docx';
         res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document');
         res.setHeader('Content-Disposition', `attachment; filename="${outputFilename}"`);
         res.setHeader('Content-Length', buffer.length);
@@ -955,6 +1057,15 @@ app.post('/convert-pdf-to-word', async (req, res) => {
         });
     }
 });
+
+// Helper function to format file size
+function formatFileSize(bytes) {
+    if (bytes === 0) return '0 Bytes';
+    const k = 1024;
+    const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+}
 
 // ────────────────────────────────────────────────────────────
 // Start server

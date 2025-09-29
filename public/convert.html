@@ -393,10 +393,11 @@
             const formData = new FormData();
             formData.append('pdf', selectedFile);
 
+            let progressInterval;
             try {
                 // Simulate progress
                 let progress = 0;
-                const progressInterval = setInterval(() => {
+                progressInterval = setInterval(() => {
                     progress += Math.random() * 15;
                     if (progress > 90) progress = 90;
                     updateProgress(progress);
@@ -437,7 +438,9 @@
                 }, 500);
 
             } catch (err) {
-                clearInterval(progressInterval);
+                if (progressInterval) {
+                    clearInterval(progressInterval);
+                }
                 hideProgress();
                 showError(err.message);
             }
