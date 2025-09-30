@@ -1,461 +1,179 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>PDF to Word Converter</title>
-    <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            min-height: 100vh;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            padding: 20px;
-        }
-
-        .container {
-            background: white;
-            border-radius: 20px;
-            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
-            padding: 40px;
-            max-width: 600px;
-            width: 100%;
-            text-align: center;
-        }
-
-        h1 {
-            color: #333;
-            margin-bottom: 10px;
-            font-size: 2.5rem;
-            font-weight: 700;
-        }
-
-        .subtitle {
-            color: #666;
-            margin-bottom: 40px;
-            font-size: 1.1rem;
-        }
-
-        .upload-area {
-            border: 3px dashed #ddd;
-            border-radius: 15px;
-            padding: 60px 20px;
-            margin-bottom: 30px;
-            transition: all 0.3s ease;
-            cursor: pointer;
-            background: #fafafa;
-        }
-
-        .upload-area:hover {
-            border-color: #667eea;
-            background: #f0f4ff;
-        }
-
-        .upload-area.dragover {
-            border-color: #667eea;
-            background: #e8f2ff;
-            transform: scale(1.02);
-        }
-
-        .upload-icon {
-            font-size: 4rem;
-            color: #667eea;
-            margin-bottom: 20px;
-        }
-
-        .upload-text {
-            font-size: 1.2rem;
-            color: #333;
-            margin-bottom: 10px;
-        }
-
-        .upload-hint {
-            color: #666;
-            font-size: 0.9rem;
-        }
-
-        #fileInput {
-            display: none;
-        }
-
-        .file-info {
-            background: #f8f9fa;
-            border-radius: 10px;
-            padding: 20px;
-            margin: 20px 0;
-            display: none;
-        }
-
-        .file-name {
-            font-weight: 600;
-            color: #333;
-            margin-bottom: 5px;
-        }
-
-        .file-size {
-            color: #666;
-            font-size: 0.9rem;
-        }
-
-        .convert-btn {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
-            border: none;
-            padding: 15px 40px;
-            border-radius: 50px;
-            font-size: 1.1rem;
-            font-weight: 600;
-            cursor: pointer;
-            transition: all 0.3s ease;
-            margin: 20px 0;
-            display: none;
-        }
-
-        .convert-btn:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 10px 20px rgba(102, 126, 234, 0.3);
-        }
-
-        .convert-btn:disabled {
-            background: #ccc;
-            cursor: not-allowed;
-            transform: none;
-            box-shadow: none;
-        }
-
-        .progress-container {
-            display: none;
-            margin: 20px 0;
-        }
-
-        .progress-bar {
-            width: 100%;
-            height: 8px;
-            background: #e0e0e0;
-            border-radius: 4px;
-            overflow: hidden;
-        }
-
-        .progress-fill {
-            height: 100%;
-            background: linear-gradient(90deg, #667eea, #764ba2);
-            width: 0%;
-            transition: width 0.3s ease;
-        }
-
-        .progress-text {
-            margin-top: 10px;
-            color: #666;
-            font-size: 0.9rem;
-        }
-
-        .result {
-            display: none;
-            margin-top: 30px;
-        }
-
-        .success {
-            background: #d4edda;
-            border: 1px solid #c3e6cb;
-            color: #155724;
-            padding: 20px;
-            border-radius: 10px;
-            margin-bottom: 20px;
-        }
-
-        .download-btn {
-            background: #28a745;
-            color: white;
-            border: none;
-            padding: 12px 30px;
-            border-radius: 25px;
-            font-size: 1rem;
-            font-weight: 600;
-            cursor: pointer;
-            transition: all 0.3s ease;
-            text-decoration: none;
-            display: inline-block;
-        }
-
-        .download-btn:hover {
-            background: #218838;
-            transform: translateY(-1px);
-        }
-
-        .error {
-            background: #f8d7da;
-            border: 1px solid #f5c6cb;
-            color: #721c24;
-            padding: 20px;
-            border-radius: 10px;
-            margin-top: 20px;
-            display: none;
-        }
-
-        .back-link {
-            position: absolute;
-            top: 20px;
-            left: 20px;
-            color: white;
-            text-decoration: none;
-            font-weight: 600;
-            background: rgba(255, 255, 255, 0.2);
-            padding: 10px 20px;
-            border-radius: 25px;
-            transition: all 0.3s ease;
-        }
-
-        .back-link:hover {
-            background: rgba(255, 255, 255, 0.3);
-            transform: translateY(-1px);
-        }
-    </style>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>PDF → Word (Replica DOCX via Page Images)</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+  <style>
+    :root{--ink:#0f172a;--muted:#64748b;--line:#e2e8f0;--accent:#0A66C2}
+    *{box-sizing:border-box}
+    body{margin:0;font-family:Inter,system-ui,Segoe UI,Roboto,Arial,sans-serif;background:linear-gradient(180deg,#f5f7fb,#ffffff);color:var(--ink)}
+    .wrap{max-width:980px;margin:0 auto;padding:24px}
+    h1{margin:0 0 4px;font-size:28px}
+    p.m{margin:6px 0 0;color:var(--muted)}
+    .card{background:#fff;border:1px solid var(--line);border-radius:16px;box-shadow:0 12px 30px rgba(2,6,23,.06)}
+    .p{padding:18px}
+    .row{display:flex;gap:12px;flex-wrap:wrap;align-items:center}
+    .btn{appearance:none;display:inline-flex;align-items:center;gap:8px;border:1px solid var(--line);background:#fff;border-radius:10px;padding:10px 14px;font-weight:600;cursor:pointer}
+    .btn.primary{background:#2563eb;border-color:#2563eb;color:#fff}
+    .btn:disabled{opacity:.5;cursor:not-allowed}
+    .hint{font-size:12px;color:var(--muted)}
+    input[type="number"]{width:90px;padding:8px 10px;border:1px solid var(--line);border-radius:8px}
+    .dz{border:2px dashed #c7d2fe;border-radius:14px;padding:22px;text-align:center}
+    .dz.ring{box-shadow:0 0 0 4px #a5b4fc66}
+    progress{width:100%}
+    .pages{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:10px;margin-top:10px}
+    .thumb{border:1px solid var(--line);border-radius:8px;overflow:hidden;background:#fff}
+    .thumb img{display:block;width:100%;height:auto}
+    .mono{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:12px;color:#334155}
+  </style>
 </head>
 <body>
-    <a href="index.html" class="back-link">← Back to Forms</a>
-    
-    <div class="container">
-        <h1>PDF to Word Converter</h1>
-        <p class="subtitle">Upload your PDF files and convert them to Word documents</p>
-        
-        <div class="upload-area" id="uploadArea">
-            <div class="upload-icon">📄</div>
-            <div class="upload-text">Drop your PDF here or click to browse</div>
-            <div class="upload-hint">Supports PDF files up to 50MB</div>
-            <input type="file" id="fileInput" accept=".pdf" />
-        </div>
-        
-        <div class="file-info" id="fileInfo">
-            <div class="file-name" id="fileName"></div>
-            <div class="file-size" id="fileSize"></div>
-        </div>
-        
-        <button class="convert-btn" id="convertBtn">Convert to Word</button>
-        
-        <div class="progress-container" id="progressContainer">
-            <div class="progress-bar">
-                <div class="progress-fill" id="progressFill"></div>
-            </div>
-            <div class="progress-text" id="progressText">Converting...</div>
-        </div>
-        
-        <div class="result" id="result">
-            <div class="success">
-                <h3>✅ Conversion Successful!</h3>
-                <p>Your PDF has been converted to a Word document.</p>
-            </div>
-            <a href="#" class="download-btn" id="downloadBtn" download>Download Word Document</a>
-        </div>
-        
-        <div class="error" id="error">
-            <h3>❌ Conversion Failed</h3>
-            <p id="errorMessage"></p>
-        </div>
+  <div class="wrap">
+    <h1>PDF → Word (Replica)</h1>
+    <p class="m">Pixel‑perfect DOCX by inserting each PDF page as a full‑page image. Works for <b>any</b> PDF. (Optional OCR layer can be added later.)</p>
+
+    <div class="card p" style="margin-top:14px">
+      <div class="row">
+        <label class="btn"><input id="file" type="file" accept="application/pdf" hidden>Choose PDF</label>
+        <div class="dz" id="dz">Drop PDF here or paste with <span class="mono">Ctrl+V</span></div>
+      </div>
+      <div class="row" style="margin-top:10px">
+        <label class="hint">Output DPI:
+          <input id="dpi" type="number" min="96" max="600" step="12" value="300" title="Rendering DPI (higher = larger DOCX, sharper)"/>
+        </label>
+        <label class="hint">Margins (inches):
+          <input id="margin" type="number" min="0" max="1" step="0.1" value="0" title="Page margins in Word"/>
+        </label>
+        <button id="convert" class="btn primary" disabled>Convert to Word (.docx)</button>
+      </div>
+      <div id="meta" class="hint" style="margin-top:8px;display:none"></div>
+      <div id="progWrap" style="margin-top:10px;display:none">
+        <progress id="prog" max="100" value="0"></progress>
+        <div class="hint"><span id="progText">Rendering…</span></div>
+      </div>
     </div>
 
-    <script>
-        const uploadArea = document.getElementById('uploadArea');
-        const fileInput = document.getElementById('fileInput');
-        const fileInfo = document.getElementById('fileInfo');
-        const fileName = document.getElementById('fileName');
-        const fileSize = document.getElementById('fileSize');
-        const convertBtn = document.getElementById('convertBtn');
-        const progressContainer = document.getElementById('progressContainer');
-        const progressFill = document.getElementById('progressFill');
-        const progressText = document.getElementById('progressText');
-        const result = document.getElementById('result');
-        const downloadBtn = document.getElementById('downloadBtn');
-        const error = document.getElementById('error');
+    <div class="card p" style="margin-top:14px">
+      <div class="row" style="justify-content:space-between">
+        <div style="font-weight:600">Preview</div>
+        <div class="hint">(thumbnails)</div>
+      </div>
+      <div id="thumbs" class="pages"></div>
+    </div>
+  </div>
 
-        let selectedFile = null;
+  <!-- pdf.js (UMD) -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+  <script>pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';</script>
+  <!-- docx (UMD) -->
+  <script src="https://unpkg.com/docx@8.5.0/build/index.umd.js"></script>
+  <!-- (Optional for future) Tesseract.js for OCR: https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js -->
 
-        // Click to upload
-        uploadArea.addEventListener('click', () => {
-            fileInput.click();
-        });
+  <script>
+  const fileInput = document.getElementById('file');
+  const dz = document.getElementById('dz');
+  const dpiInput = document.getElementById('dpi');
+  const marginInput = document.getElementById('margin');
+  const convertBtn = document.getElementById('convert');
+  const thumbs = document.getElementById('thumbs');
+  const meta = document.getElementById('meta');
+  const progWrap = document.getElementById('progWrap');
+  const prog = document.getElementById('prog');
+  const progText = document.getElementById('progText');
 
-        // File input change
-        fileInput.addEventListener('change', handleFileSelect);
+  let currentPDF = null; let pdfName = 'document';
 
-        // Drag and drop
-        uploadArea.addEventListener('dragover', (e) => {
-            e.preventDefault();
-            uploadArea.classList.add('dragover');
-        });
+  // drag/paste
+  ['dragenter','dragover'].forEach(ev=>dz.addEventListener(ev, e=>{e.preventDefault(); dz.classList.add('ring')}));
+  ;['dragleave','drop'].forEach(ev=>dz.addEventListener(ev, e=>{e.preventDefault(); dz.classList.remove('ring')}));
+  dz.addEventListener('drop', e=>{ const f=e.dataTransfer.files?.[0]; if(f) loadPDFFile(f); });
+  window.addEventListener('paste', e=>{ const f=[...e.clipboardData.files].find(f=>f.type==='application/pdf'); if(f) loadPDFFile(f); });
+  fileInput.addEventListener('change', e=>{ const f=e.target.files?.[0]; if(f) loadPDFFile(f); });
 
-        uploadArea.addEventListener('dragleave', () => {
-            uploadArea.classList.remove('dragover');
-        });
+  async function loadPDFFile(file){
+    pdfName = file.name.replace(/\.[Pp][Dd][Ff]$/, '') || 'document';
+    const buf = await file.arrayBuffer();
+    currentPDF = await pdfjsLib.getDocument({data: buf}).promise;
+    meta.style.display='block';
+    meta.textContent = `Pages: ${currentPDF.numPages} • File: ${file.name} • ${(file.size/1024/1024).toFixed(2)} MB`;
+    convertBtn.disabled = false;
+    // show quick thumbs (low DPI)
+    thumbs.innerHTML = '';
+    const lowDPI = 96; // speed thumb preview
+    for(let i=1;i<=Math.min(currentPDF.numPages, 8);i++){
+      const page = await currentPDF.getPage(i);
+      const vp1 = page.getViewport({ scale: 1 });
+      const scale = lowDPI/72;
+      const vp = page.getViewport({ scale });
+      const canvas = document.createElement('canvas');
+      canvas.width = Math.round(vp.width);
+      canvas.height = Math.round(vp.height);
+      const ctx = canvas.getContext('2d', { willReadFrequently: false });
+      await page.render({ canvasContext: ctx, viewport: vp }).promise;
+      const url = canvas.toDataURL('image/png');
+      const div = Object.assign(document.createElement('div'), { className: 'thumb' });
+      const img = Object.assign(document.createElement('img'), { src: url, alt: `Page ${i}` });
+      div.appendChild(img); thumbs.appendChild(div);
+    }
+  }
 
-        uploadArea.addEventListener('drop', (e) => {
-            e.preventDefault();
-            uploadArea.classList.remove('dragover');
-            
-            const files = e.dataTransfer.files;
-            if (files.length > 0) {
-                handleFile(files[0]);
-            }
-        });
+  convertBtn.addEventListener('click', async ()=>{
+    if(!currentPDF) return;
+    const dpi = Math.max(96, Math.min(600, parseInt(dpiInput.value||300,10)));
+    const marginIn = Math.max(0, Math.min(1, parseFloat(marginInput.value||0)));
 
-        function handleFileSelect(e) {
-            const file = e.target.files[0];
-            if (file) {
-                handleFile(file);
-            }
-        }
+    progWrap.style.display='block'; prog.value=0; progText.textContent='Rendering pages…';
 
-        function handleFile(file) {
-            // Validate file type
-            if (file.type !== 'application/pdf') {
-                showError('Please select a valid PDF file.');
-                return;
-            }
+    // Render every page to PNGs at selected DPI
+    const pages = [];
+    for(let p=1;p<=currentPDF.numPages;p++){
+      const page = await currentPDF.getPage(p);
+      const vp1 = page.getViewport({ scale: 1 }); // gives PDF points (1 pt = 1/72 in)
+      const inchW = vp1.width/72, inchH = vp1.height/72;
+      const scale = dpi/72; // CSS px per PDF pt
+      const vp = page.getViewport({ scale });
+      const canvas = document.createElement('canvas');
+      canvas.width = Math.round(vp.width);
+      canvas.height = Math.round(vp.height);
+      const ctx = canvas.getContext('2d');
+      ctx.fillStyle = '#ffffff'; // flatten to white background
+      ctx.fillRect(0,0,canvas.width,canvas.height);
+      await page.render({ canvasContext: ctx, viewport: vp, intent: 'print' }).promise;
+      const url = canvas.toDataURL('image/png');
+      const bin = await (await fetch(url)).arrayBuffer();
+      pages.push({ bin, inchW, inchH });
+      prog.value = Math.round((p/currentPDF.numPages)*70); // 0-70 for render
+      progText.textContent = `Rendering ${p}/${currentPDF.numPages}…`;
+    }
 
-            // Validate file size (50MB limit)
-            if (file.size > 50 * 1024 * 1024) {
-                showError('File size must be less than 50MB.');
-                return;
-            }
+    // Build DOCX with page-sized images
+    progText.textContent = 'Assembling DOCX…'; prog.value = 75;
+    const { Document, Packer, Paragraph, ImageRun } = docx;
 
-            selectedFile = file;
-            showFileInfo(file);
-            convertBtn.style.display = 'inline-block';
-            hideError();
-            hideResult();
-        }
+    // Create sections: one per page to support varying page sizes/margins
+    const sections = pages.map(({bin, inchW, inchH})=>{
+      const pxW = Math.round(inchW*96), pxH = Math.round(inchH*96); // docx expects px-ish numbers
+      const marginTwip = Math.round(marginIn*72*20); // inches → points (72) → twips (×20)
+      return {
+        properties: {
+          page: { size: { width: Math.round(inchW*72*20), height: Math.round(inchH*72*20) }, margin: { top: marginTwip, right: marginTwip, bottom: marginTwip, left: marginTwip } }
+        },
+        children: [ new Paragraph({ children: [ new ImageRun({ data: bin, transformation: { width: pxW - Math.round((marginIn*2)*96), height: pxH - Math.round((marginIn*2)*96) } }) ] }) ]
+      };
+    });
 
-        function showFileInfo(file) {
-            fileName.textContent = file.name;
-            fileSize.textContent = formatFileSize(file.size);
-            fileInfo.style.display = 'block';
-        }
+    const doc = new Document({ sections });
+    const blob = await Packer.toBlob(doc);
+    prog.value = 100; progText.textContent = 'Done';
 
-        function formatFileSize(bytes) {
-            if (bytes === 0) return '0 Bytes';
-            const k = 1024;
-            const sizes = ['Bytes', 'KB', 'MB', 'GB'];
-            const i = Math.floor(Math.log(bytes) / Math.log(k));
-            return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
-        }
-
-        function showError(message) {
-            document.getElementById('errorMessage').textContent = message;
-            error.style.display = 'block';
-            hideResult();
-        }
-
-        function hideError() {
-            error.style.display = 'none';
-        }
-
-        function showResult() {
-            result.style.display = 'block';
-            hideError();
-        }
-
-        function hideResult() {
-            result.style.display = 'none';
-        }
-
-        function showProgress() {
-            progressContainer.style.display = 'block';
-            convertBtn.disabled = true;
-            convertBtn.textContent = 'Converting...';
-        }
-
-        function hideProgress() {
-            progressContainer.style.display = 'none';
-            convertBtn.disabled = false;
-            convertBtn.textContent = 'Convert to Word';
-        }
-
-        function updateProgress(percent) {
-            progressFill.style.width = percent + '%';
-            progressText.textContent = `Converting... ${Math.round(percent)}%`;
-        }
-
-        // Convert button click
-        convertBtn.addEventListener('click', async () => {
-            if (!selectedFile) return;
-
-            showProgress();
-            hideError();
-            hideResult();
-
-            const formData = new FormData();
-            formData.append('pdf', selectedFile);
-
-            let progressInterval;
-            try {
-                // Simulate progress
-                let progress = 0;
-                progressInterval = setInterval(() => {
-                    progress += Math.random() * 15;
-                    if (progress > 90) progress = 90;
-                    updateProgress(progress);
-                }, 200);
-
-                const response = await fetch('/convert-pdf-to-word', {
-                    method: 'POST',
-                    body: formData
-                });
-
-                clearInterval(progressInterval);
-                updateProgress(100);
-
-                if (!response.ok) {
-                    const errorData = await response.json();
-                    throw new Error(errorData.error || 'Conversion failed');
-                }
-
-                const blob = await response.blob();
-                const url = window.URL.createObjectURL(blob);
-                
-                // Get filename from response headers or create one
-                const contentDisposition = response.headers.get('Content-Disposition');
-                let filename = 'converted-document.docx';
-                if (contentDisposition) {
-                    const filenameMatch = contentDisposition.match(/filename="(.+)"/);
-                    if (filenameMatch) {
-                        filename = filenameMatch[1];
-                    }
-                }
-
-                downloadBtn.href = url;
-                downloadBtn.download = filename;
-                
-                setTimeout(() => {
-                    hideProgress();
-                    showResult();
-                }, 500);
-
-            } catch (err) {
-                if (progressInterval) {
-                    clearInterval(progressInterval);
-                }
-                hideProgress();
-                showError(err.message);
-            }
-        });
-
-        // Reset when new file is selected
-        function reset() {
-            selectedFile = null;
-            fileInfo.style.display = 'none';
-            convertBtn.style.display = 'none';
-            hideProgress();
-            hideResult();
-            hideError();
-            fileInput.value = '';
-        }
-    </script>
+    const a = Object.assign(document.createElement('a'), { href: URL.createObjectURL(blob), download: `${pdfName}_replica.docx` });
+    document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(()=>{progWrap.style.display='none';}, 1200);
+  });
+  </script>
 </body>
 </html>

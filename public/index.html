@@ -5,6 +5,11 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Connection Form</title>
   <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+  <!-- PDF.js for PDF processing -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+  <script>pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';</script>
+  <!-- docx for Word document creation -->
+  <script src="https://unpkg.com/docx@8.5.0/build/index.umd.js"></script>
   <style>
     :root{
       --bg1:#eef3ff;
@@ -212,7 +217,7 @@
     }
 
     .download-pdf-btn {
-      background: linear-gradient(180deg, var(--accent), #08498f);
+      background: linear-gradient(180deg, #22c55e, #16a34a);
       color: #fff;
       border: none;
       border-radius: 8px;
@@ -222,7 +227,7 @@
       cursor: pointer;
       margin-top: 12px;
       width: 100%;
-      box-shadow: 0 4px 12px rgba(10,102,194,.22);
+      box-shadow: 0 4px 12px rgba(34,197,94,.22);
       transition: all 0.15s ease;
     }
 
@@ -235,10 +240,80 @@
       transform: translateY(0);
     }
 
+    .download-word-btn {
+      background: linear-gradient(180deg, #2563eb, #1d4ed8);
+      color: #fff;
+      border: none;
+      border-radius: 8px;
+      padding: 8px 16px;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      margin-top: 8px;
+      width: 100%;
+      box-shadow: 0 4px 12px rgba(37, 99, 235, 0.22);
+      transition: all 0.15s ease;
+    }
+
+    /* Special styling for both main action buttons to be the same size */
+    #downloadBtn, #downloadAllWordBtn {
+      border-radius: 12px;
+      padding: 14px 18px;
+      font-size: 16px;
+      font-weight: 700;
+      letter-spacing: 0.2px;
+      cursor: pointer;
+      width: 100%;
+      max-width: 300px;
+      transition: all 0.15s ease;
+    }
+
+    #downloadBtn {
+      background: linear-gradient(180deg, #22c55e, #16a34a);
+      color: #fff;
+      border: none;
+      box-shadow: 0 8px 18px rgba(34, 197, 94, 0.22);
+    }
+
+    #downloadAllWordBtn {
+      background: linear-gradient(180deg, #2563eb, #1d4ed8);
+      color: #fff;
+      border: none;
+      box-shadow: 0 8px 18px rgba(37, 99, 235, 0.22);
+    }
+
+    #downloadBtn:hover, #downloadAllWordBtn:hover {
+      filter: brightness(1.05);
+    }
+
+    #downloadBtn:disabled, #downloadAllWordBtn:disabled {
+      background: #9ca3af;
+      cursor: not-allowed;
+      transform: none;
+      box-shadow: none;
+    }
+
+    .download-word-btn:hover {
+      filter: brightness(1.05);
+      transform: translateY(-1px);
+    }
+
+    .download-word-btn:active {
+      transform: translateY(0);
+    }
+
+    .download-word-btn:disabled {
+      background: #9ca3af;
+      cursor: not-allowed;
+      transform: none;
+      box-shadow: none;
+    }
+
     .action-buttons {
       display: flex;
+      flex-direction: column;
       gap: 12px;
-      justify-content: center;
+      align-items: center;
       margin-top: 20px;
     }
 
@@ -660,7 +735,7 @@
       <header class="hero">
         <h1 class="title">Connection Form</h1><center>
         <p class="subtitle">Enter the customer and service details below. When you submit, you'll be able to download a nicely formatted PDF.</p>
-        <button type="button" id="exampleFillBtn" class="example-fill-btn" onclick="fillExampleData()">Example Fill</button>
+        <button type="button" id="exampleFillBtn" class="example-fill-btn" onclick="fillExampleData()" style="display: none;">Example Fill</button>
         <button type="button" id="uploadExcelBtn" class="example-fill-btn" style="margin-left:8px" >Upload Excel</button>
         <input type="file" id="excelFile" accept=".xlsx,.xls" style="display:none" />
         
@@ -876,11 +951,13 @@
               <h4 id="pdf1Title">PDF 1</h4>
               <iframe id="pdf1Preview" src="" width="100%" height="400px" style="border: 1px solid var(--line); border-radius: 8px;"></iframe>
               <button class="download-pdf-btn" onclick="downloadPDF1()">Download PDF 1</button>
+              <button class="download-word-btn" onclick="downloadWord1()">Download Word DOCX</button>
             </div>
             <div class="pdf-preview">
               <h4 id="pdf2Title">PDF 2</h4>
               <iframe id="pdf2Preview" src="" width="100%" height="400px" style="border: 1px solid var(--line); border-radius: 8px;"></iframe>
               <button class="download-pdf-btn" onclick="downloadPDF2()">Download PDF 2</button>
+              <button class="download-word-btn" onclick="downloadWord2()">Download Word DOCX</button>
             </div>
           </div>
         </div>
@@ -888,6 +965,7 @@
         <!-- Action Buttons -->
         <div class="action-buttons">
           <button id="downloadBtn" class="download-btn" onclick="downloadAllPDFs()">Download All PDFs</button>
+          <button id="downloadAllWordBtn" class="download-word-btn" onclick="downloadAllWordDocs()">Download All Word DOCX</button>
         </div>
         <div class="back-button-container">
           <button id="backBtn" class="back-btn" onclick="goBackToForm()">Back to Form</button>
@@ -951,6 +1029,15 @@
 
       // Set up drag and drop functionality
       setupDragAndDrop();
+    });
+
+    // Keyboard shortcut for example fill (Ctrl+Shift)
+    document.addEventListener('keydown', function(event) {
+      if (event.ctrlKey && event.shiftKey) {
+        event.preventDefault(); // Prevent browser default behavior
+        fillExampleData();
+        console.log('Example data filled via keyboard shortcut (Ctrl+Shift)');
+      }
     });
 
     // Hidden textbox functionality
@@ -1658,15 +1745,212 @@
       downloadPDF2();
     }
 
+    // Global variables to store Word document data
+    let word1Data = null;
+    let word2Data = null;
+
+    // Function to convert PDF to Word document
+    async function convertPDFToWord(pdfBlob, filename) {
+      try {
+        // Load PDF using PDF.js
+        const arrayBuffer = await pdfBlob.arrayBuffer();
+        const pdf = await pdfjsLib.getDocument({data: arrayBuffer}).promise;
+        
+        const { Document, Packer, Paragraph, ImageRun } = docx;
+        
+        // Render each page to image
+        const pages = [];
+        for (let p = 1; p <= pdf.numPages; p++) {
+          const page = await pdf.getPage(p);
+          const vp1 = page.getViewport({ scale: 1 });
+          const inchW = vp1.width / 72;
+          const inchH = vp1.height / 72;
+          const scale = 300 / 72; // 300 DPI
+          const vp = page.getViewport({ scale });
+          
+          const canvas = document.createElement('canvas');
+          canvas.width = Math.round(vp.width);
+          canvas.height = Math.round(vp.height);
+          const ctx = canvas.getContext('2d');
+          
+          // White background
+          ctx.fillStyle = '#ffffff';
+          ctx.fillRect(0, 0, canvas.width, canvas.height);
+          
+          await page.render({ canvasContext: ctx, viewport: vp, intent: 'print' }).promise;
+          
+          const url = canvas.toDataURL('image/png');
+          const bin = await (await fetch(url)).arrayBuffer();
+          pages.push({ bin, inchW, inchH });
+        }
+        
+        // Create Word document with page-sized images
+        const sections = pages.map(({bin, inchW, inchH}) => {
+          const pxW = Math.round(inchW * 96);
+          const pxH = Math.round(inchH * 96);
+          return {
+            properties: {
+              page: { 
+                size: { 
+                  width: Math.round(inchW * 72 * 20), 
+                  height: Math.round(inchH * 72 * 20) 
+                }, 
+                margin: { top: 0, right: 0, bottom: 0, left: 0 } 
+              }
+            },
+            children: [ 
+              new Paragraph({ 
+                children: [ 
+                  new ImageRun({ 
+                    data: bin, 
+                    transformation: { width: pxW, height: pxH } 
+                  }) 
+                ] 
+              }) 
+            ]
+          };
+        });
+        
+        const doc = new Document({ sections });
+        const blob = await Packer.toBlob(doc);
+        
+        return blob;
+      } catch (error) {
+        console.error('Error converting PDF to Word:', error);
+        throw error;
+      }
+    }
+
+    // Function to download individual Word documents
+    async function downloadWord1() {
+      if (!pdf1Data) {
+        alert('PDF 1 not available for conversion');
+        return;
+      }
+      
+      const button = event.target;
+      const originalText = button.textContent;
+      button.textContent = 'Converting...';
+      button.disabled = true;
+      
+      try {
+        if (!word1Data) {
+          word1Data = await convertPDFToWord(pdf1Data, pdf1Name);
+        }
+        
+        const url = URL.createObjectURL(word1Data);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `${pdf1Name}_converted.docx`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+      } catch (error) {
+        console.error('Error downloading Word document 1:', error);
+        alert('Error converting PDF to Word document');
+      } finally {
+        button.textContent = originalText;
+        button.disabled = false;
+      }
+    }
+
+    async function downloadWord2() {
+      if (!pdf2Data) {
+        alert('PDF 2 not available for conversion');
+        return;
+      }
+      
+      const button = event.target;
+      const originalText = button.textContent;
+      button.textContent = 'Converting...';
+      button.disabled = true;
+      
+      try {
+        if (!word2Data) {
+          word2Data = await convertPDFToWord(pdf2Data, pdf2Name);
+        }
+        
+        const url = URL.createObjectURL(word2Data);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `${pdf2Name}_converted.docx`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+      } catch (error) {
+        console.error('Error downloading Word document 2:', error);
+        alert('Error converting PDF to Word document');
+      } finally {
+        button.textContent = originalText;
+        button.disabled = false;
+      }
+    }
+
+    // Function to download all Word documents
+    async function downloadAllWordDocs() {
+      const button = document.getElementById('downloadAllWordBtn');
+      const originalText = button.textContent;
+      button.textContent = 'Converting...';
+      button.disabled = true;
+      
+      try {
+        // Convert both PDFs to Word if not already converted
+        if (pdf1Data && !word1Data) {
+          word1Data = await convertPDFToWord(pdf1Data, pdf1Name);
+        }
+        if (pdf2Data && !word2Data) {
+          word2Data = await convertPDFToWord(pdf2Data, pdf2Name);
+        }
+        
+        // Download both Word documents
+        if (word1Data) {
+          const url1 = URL.createObjectURL(word1Data);
+          const a1 = document.createElement('a');
+          a1.href = url1;
+          a1.download = `${pdf1Name}_converted.docx`;
+          document.body.appendChild(a1);
+          a1.click();
+          document.body.removeChild(a1);
+          URL.revokeObjectURL(url1);
+        }
+        
+        if (word2Data) {
+          const url2 = URL.createObjectURL(word2Data);
+          const a2 = document.createElement('a');
+          a2.href = url2;
+          a2.download = `${pdf2Name}_converted.docx`;
+          document.body.appendChild(a2);
+          a2.click();
+          document.body.removeChild(a2);
+          URL.revokeObjectURL(url2);
+        }
+        
+        button.textContent = 'Downloaded!';
+        setTimeout(() => {
+          button.textContent = originalText;
+          button.disabled = false;
+        }, 2000);
+      } catch (error) {
+        console.error('Error downloading Word documents:', error);
+        alert('Error converting PDFs to Word documents');
+        button.textContent = originalText;
+        button.disabled = false;
+      }
+    }
+
     // Function to go back to the form
     function goBackToForm() {
       document.getElementById('thankYouMessage').style.display = 'none';
       document.getElementById('customForm').style.display = 'block';
       document.querySelector('.drag-drop-container').style.display = 'block';
       
-      // Clear PDF data
+      // Clear PDF and Word data
       pdf1Data = null;
       pdf2Data = null;
+      word1Data = null;
+      word2Data = null;
       document.getElementById('pdf1Preview').src = '';
       document.getElementById('pdf2Preview').src = '';
     }
