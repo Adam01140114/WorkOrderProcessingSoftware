@@ -799,6 +799,9 @@
              <div class="field"><label for="service_state">State</label><input type="text" id="service_state" name="service_state" value="CA" onchange="updateFullServiceAddress()"></div>
              <div class="field"><label for="service_zip">ZIP</label><input type="text" id="service_zip" name="service_zip" placeholder="ZIP code" onchange="updateFullServiceAddress()"></div>
            </div>
+           <div class="grid cols-1" style="margin-top: 6px;">
+             <div class="field"><label for="service_unit">Unit #</label><input type="text" id="service_unit" name="service_unit" placeholder="Unit number" onchange="updateFullServiceAddress()"></div>
+           </div>
         </div>
 
 
@@ -810,9 +813,7 @@
             <div class="field" data-for="connection"><label for="middle_ex">MI / Ex</label><input type="text" id="middle_ex" name="middle_ex" placeholder="Optional"></div>
             <div class="field"><label for="last_name">Last Name</label><input type="text" id="last_name" name="last_name" onchange="updateFullName()"></div>
           </div>
-          <div class="grid cols-3" style="margin-top:6px">
-            <div class="field" data-for="connection"><label for="verify_cadl">Verify CADL / ID #</label><input type="text" id="verify_cadl" name="verify_cadl" placeholder="ID or CADL #"></div>
-            <div class="field" data-for="connection"><label for="last4_ssn">Last 4 SS#</label><input type="text" id="last4_ssn" name="last4_ssn" maxlength="4" inputmode="numeric" pattern="[0-9]{4}" placeholder="XXXX"></div>
+          <div class="grid cols-1" style="margin-top:6px">
             <div class="field" data-for="connection"><label for="connect_date">Connect Date</label><input type="date" id="connect_date" name="connect_date"></div>
           </div>
 
@@ -850,6 +851,9 @@
         <!-- Employment & Identification - Spouse -->
         <div class="section" data-for="connection">
           <h2>Employment & Identification - Spouse</h2>
+          <div class="grid cols-1" style="margin-bottom: 10px;">
+            <div class="field"><label for="spouse_name">Spouse Name</label><input type="text" id="spouse_name" name="spouse_name" placeholder="Full name"></div>
+          </div>
           <div class="grid cols-3">
             <div class="field"><label for="spouse_employer">Spouse Employer</label><input type="text" id="spouse_employer" name="spouse_employer"></div>
             <div class="field"><label for="spouse_emp_phone">Emp. Phone</label><input type="tel" id="spouse_emp_phone" name="spouse_emp_phone" placeholder="(xxx) xxx-xxxx"></div>
@@ -897,16 +901,16 @@
         <div class="section" data-for="connection">
           <h2>Work Order & Reads</h2>
            <div class="inline">
-             <label class="chip"><input type="checkbox" id="install_new_service" name="install_new_service" value="yes"> INSTALL NEW SERVICE</label>
-             <label class="chip"><input type="checkbox" id="install_meter" name="install_meter" value="yes"> INSTALL METER</label>
-             <label class="chip"><input type="checkbox" id="read_and_turn_on" name="read_and_turn_on" value="yes"> READ AND TURN ON</label>
+             <label class="chip"><input type="radio" id="install_new_service" name="service_option" value="install_new_service"> INSTALL NEW SERVICE</label>
+             <label class="chip"><input type="radio" id="install_meter" name="service_option" value="install_meter"> INSTALL METER</label>
+             <label class="chip"><input type="radio" id="read_and_turn_on" name="service_option" value="read_and_turn_on" checked> READ AND TURN ON</label>
            </div>
           <div class="grid cols-3" style="margin-top:10px">
             <div class="field"><label for="notes">Notes (optional)</label><input type="text" id="notes" name="notes" placeholder="Any additional details"></div>
             <div class="field"><label for="remarks">Remarks</label><input type="text" id="remarks" name="remarks" placeholder="Additional remarks"></div>
           </div>
            <div class="grid cols-1" style="margin-top:10px">
-             <div class="field"><label for="comments">Comments</label><input type="text" id="comments" name="comments" value="VERIFIED ID"></div>
+             <div class="field"><label for="comments">Comments</label><input type="text" id="comments" name="comments" value="VER ID"></div>
            </div>
         </div>
 
@@ -925,9 +929,10 @@
             <label class="chip"><input type="radio" id="deposit_required_no" name="deposit_required" value="no"> No</label>
           </div>
           
-          <div class="grid cols-2" style="margin-top: 16px;">
+          <div class="grid cols-3" style="margin-top: 16px;">
             <div class="field"><label for="disconnect_deposit_amount">Deposit Amount</label><input type="number" id="disconnect_deposit_amount" name="disconnect_deposit_amount" step="0.01" placeholder="0.00"></div>
             <div class="field"><label for="payment_due">Payment Due</label><input type="number" id="payment_due" name="payment_due" step="0.01" placeholder="0.00"></div>
+            <div class="field"><label for="new_account_deposit">New account deposit</label><input type="number" id="new_account_deposit" name="new_account_deposit" step="0.01" placeholder="0.00"></div>
           </div>
           
           <div class="grid cols-1" style="margin-top: 16px;">
@@ -1016,6 +1021,9 @@
        // Set up full service address
        updateFullServiceAddress();
        
+       // Set up full bill address
+       updateFullBillAddress();
+       
        // Set up full name
        updateFullName();
 
@@ -1029,6 +1037,12 @@
 
       // Set up drag and drop functionality
       setupDragAndDrop();
+      
+      // Set up phone number formatting
+      setupPhoneFormatting();
+      
+      // Set up service option exclusivity
+      setupServiceOptionExclusivity();
     });
 
     // Keyboard shortcut for example fill (Ctrl+Shift)
@@ -1039,6 +1053,75 @@
         console.log('Example data filled via keyboard shortcut (Ctrl+Shift)');
       }
     });
+
+    // Phone number formatting function
+    function formatPhoneNumber(input) {
+      // Remove all non-numeric characters
+      let value = input.value.replace(/\D/g, '');
+      
+      // Format as (xxx) xxx-xxxx
+      if (value.length >= 6) {
+        value = `(${value.slice(0, 3)}) ${value.slice(3, 6)}-${value.slice(6, 10)}`;
+      } else if (value.length >= 3) {
+        value = `(${value.slice(0, 3)}) ${value.slice(3)}`;
+      } else if (value.length > 0) {
+        value = `(${value}`;
+      }
+      
+      input.value = value;
+    }
+
+    // Set up phone formatting for all phone fields
+    function setupPhoneFormatting() {
+      const phoneFields = ['contact_phone', 'emp_phone_main', 'spouse_emp_phone'];
+      
+      phoneFields.forEach(fieldId => {
+        const field = document.getElementById(fieldId);
+        if (field) {
+          field.addEventListener('input', function() {
+            formatPhoneNumber(this);
+          });
+        }
+      });
+    }
+
+    // Set up service option exclusivity
+    function setupServiceOptionExclusivity() {
+      const serviceOptions = ['install_new_service', 'install_meter', 'read_and_turn_on'];
+      
+      serviceOptions.forEach(optionId => {
+        const option = document.getElementById(optionId);
+        if (option) {
+          option.addEventListener('change', function() {
+            if (this.checked) {
+              // Create hidden textbox for the selected option
+              createHiddenTextbox(this.id, 'yes', this.value.toUpperCase().replace(/_/g, ' '));
+              
+              // Uncheck other options and remove their hidden textboxes
+              serviceOptions.forEach(otherId => {
+                if (otherId !== optionId) {
+                  const otherOption = document.getElementById(otherId);
+                  if (otherOption) {
+                    otherOption.checked = false;
+                    const otherTextbox = document.getElementById(otherId + '_textbox');
+                    if (otherTextbox) {
+                      otherTextbox.remove();
+                    }
+                  }
+                }
+              });
+            }
+          });
+        }
+      });
+      
+      // Set default selection (READ AND TURN ON)
+      const defaultOption = document.getElementById('read_and_turn_on');
+      if (defaultOption) {
+        defaultOption.checked = true;
+        createHiddenTextbox('read_and_turn_on', 'yes', 'READ AND TURN ON');
+      }
+    }
 
     // Hidden textbox functionality
     function setupHiddenTextboxes() {
@@ -1154,9 +1237,34 @@
         if (mode === 'disconnection'){
           badge.textContent = 'Form Type: Disconnection';
           badge.classList.add('disconnection');
+          // Auto-fill disconnect comments
+          const disconnectComments = document.getElementById('disconnect_comments');
+          if (disconnectComments) {
+            disconnectComments.value = 'VER ID';
+          }
+          // Auto-fill notes with DISCONNECT
+          const notes = document.getElementById('notes');
+          if (notes) {
+            notes.value = 'DISCONNECT';
+          }
+          // Auto-fill comments with VER ID
+          const comments = document.getElementById('comments');
+          if (comments) {
+            comments.value = 'VER ID';
+          }
         } else {
           badge.textContent = 'Form Type: Connection';
           badge.classList.remove('disconnection');
+          // Auto-fill comments with VER ID
+          const comments = document.getElementById('comments');
+          if (comments) {
+            comments.value = 'VER ID';
+          }
+          // Auto-fill notes with CONNECT
+          const notes = document.getElementById('notes');
+          if (notes) {
+            notes.value = 'CONNECT';
+          }
         }
       }
       document.querySelectorAll('[data-for]')
@@ -1292,12 +1400,30 @@
      // Update full service address function
      function updateFullServiceAddress() {
        const street = document.getElementById('service_street').value || '';
+       const unit = document.getElementById('service_unit').value || '';
        const city = document.getElementById('service_city').value || '';
        const state = document.getElementById('service_state').value || '';
        const zip = document.getElementById('service_zip').value || '';
        
-       // Combine the address parts
-       const fullAddress = [street, city, state, zip].filter(part => part.trim()).join(', ');
+       // Create service_street_unit hidden textbox (street + unit)
+       const streetUnit = unit.trim() ? `${street} ${unit}`.trim() : street;
+       let streetUnitField = document.getElementById('service_street_unit');
+       if (!streetUnitField) {
+         streetUnitField = document.createElement('input');
+         streetUnitField.type = 'hidden';
+         streetUnitField.id = 'service_street_unit';
+         streetUnitField.name = 'service_street_unit';
+         document.getElementById('customForm').appendChild(streetUnitField);
+       }
+       streetUnitField.value = streetUnit;
+       
+       // Combine the address parts, including unit if present
+       const addressParts = [street];
+       if (unit.trim()) {
+         addressParts.push(unit);
+       }
+       addressParts.push(city, state, zip);
+       const fullAddress = addressParts.filter(part => part.trim()).join(', ');
        
        // Create or update the hidden textbox
        let hiddenField = document.getElementById('full_service_address');
@@ -1311,6 +1437,7 @@
        
        hiddenField.value = fullAddress;
        console.log(`Updated full service address: "${fullAddress}"`);
+       console.log(`Updated service street unit: "${streetUnit}"`);
      }
 
      // Update full bill address function
@@ -1319,6 +1446,18 @@
        const city = document.getElementById('send_bill_city').value || '';
        const state = document.getElementById('send_bill_state').value || '';
        const zip = document.getElementById('send_bill_zip').value || '';
+       
+       // Create send_bill_city_state_zip hidden textbox (city + state + zip)
+       const cityStateZip = [city, state, zip].filter(part => part.trim()).join(', ');
+       let cityStateZipField = document.getElementById('send_bill_city_state_zip');
+       if (!cityStateZipField) {
+         cityStateZipField = document.createElement('input');
+         cityStateZipField.type = 'hidden';
+         cityStateZipField.id = 'send_bill_city_state_zip';
+         cityStateZipField.name = 'send_bill_city_state_zip';
+         document.getElementById('customForm').appendChild(cityStateZipField);
+       }
+       cityStateZipField.value = cityStateZip;
        
        // Combine the address parts
        const fullAddress = [street, city, state, zip].filter(part => part.trim()).join(', ');
@@ -1335,6 +1474,7 @@
        
        hiddenField.value = fullAddress;
        console.log(`Updated full bill address: "${fullAddress}"`);
+       console.log(`Updated send bill city state zip: "${cityStateZip}"`);
      }
 
      // Set today's date function
@@ -1470,6 +1610,7 @@
 
        // Service Address & Type
        document.getElementById('service_street').value = '123 Main Street';
+       document.getElementById('service_unit').value = 'Apt 2B';
        document.getElementById('service_city').value = 'SALINAS';
        document.getElementById('service_state').value = 'CA';
        document.getElementById('service_zip').value = '93901';
@@ -1484,8 +1625,6 @@
       
       // Update full name after setting first and last names
       updateFullName();
-      document.getElementById('verify_cadl').value = 'DL123456789';
-      document.getElementById('last4_ssn').value = '1234';
       document.getElementById('connect_date').value = '2024-01-15';
        document.getElementById('contact_phone').value = '(555) 123-4567';
        document.getElementById('send_bill_street').value = '123 Main Street';
@@ -1502,6 +1641,7 @@
       document.getElementById('id_exp_date_main').value = '2029-01-15';
 
       // Employment & Identification - Spouse
+      document.getElementById('spouse_name').value = 'Jane Smith';
       document.getElementById('spouse_employer').value = 'XYZ Corporation';
       document.getElementById('spouse_emp_phone').value = '(555) 345-6789';
       document.getElementById('spouse_ssn').value = '987-65-4321';
@@ -1517,13 +1657,11 @@
        document.getElementById('check_number').value = '1234';
       document.getElementById('deposit_type_initial').checked = true;
 
-       // Work Order & Reads
-       document.getElementById('install_new_service').checked = true;
-       document.getElementById('install_meter').checked = true;
+       // Work Order & Reads (only one can be selected)
        document.getElementById('read_and_turn_on').checked = true;
-       document.getElementById('notes').value = 'Standard connection setup';
+       document.getElementById('notes').value = 'CONNECT';
        document.getElementById('remarks').value = 'All systems operational';
-       document.getElementById('comments').value = 'VERIFIED ID';
+       document.getElementById('comments').value = 'VER ID';
 
       // Disconnection-specific fields (with safety checks)
       // These fields will be filled even if hidden, so they're ready when user switches to disconnection mode
@@ -1537,6 +1675,12 @@
       if (readAndShutOff) {
         readAndShutOff.checked = true;
         console.log('Filled read_and_shut_off');
+      }
+      
+      const newAccountDeposit = document.getElementById('new_account_deposit');
+      if (newAccountDeposit) {
+        newAccountDeposit.value = '50.00';
+        console.log('Filled new_account_deposit');
       }
       
       const depositRequiredYes = document.getElementById('deposit_required_yes');
@@ -1559,7 +1703,7 @@
       
       const disconnectComments = document.getElementById('disconnect_comments');
       if (disconnectComments) {
-        disconnectComments.value = 'Customer requested disconnection due to non-payment';
+        disconnectComments.value = 'VER ID';
         console.log('Filled disconnect_comments');
       }
 
@@ -1626,7 +1770,31 @@
         downloadBtn.textContent='Processing...';
         downloadBtn.disabled=true;
 
-        const formData = new FormData(document.getElementById('customForm'));
+        // Create FormData and convert all text values to uppercase
+        const form = document.getElementById('customForm');
+        const formData = new FormData();
+        
+        // Get all form elements and convert text values to uppercase
+        const formElements = form.querySelectorAll('input, select, textarea');
+        formElements.forEach(element => {
+          if (element.type === 'file') {
+            // Keep file inputs as-is
+            if (element.files && element.files.length > 0) {
+              formData.append(element.name, element.files[0]);
+            }
+          } else if (element.type === 'checkbox' || element.type === 'radio') {
+            // Keep checkbox/radio values as-is
+            if (element.checked) {
+              formData.append(element.name, element.value);
+            }
+          } else {
+            // Convert all other text values to uppercase
+            const value = element.value ? element.value.toUpperCase() : '';
+            if (element.name && value !== '') {
+              formData.append(element.name, value);
+            }
+          }
+        });
         
         // Determine form type from the badge
         const badge = document.getElementById('formTypeBadge');
