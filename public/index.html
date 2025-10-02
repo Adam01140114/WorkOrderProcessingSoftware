@@ -1097,6 +1097,23 @@
               // Create hidden textbox for the selected option
               createHiddenTextbox(this.id, 'yes', this.value.toUpperCase().replace(/_/g, ' '));
               
+              // Create additional hidden field with exact PDF field name
+              let pdfField = document.getElementById(this.id);
+              if (!pdfField || pdfField.type !== 'hidden') {
+                // Remove existing PDF field if it exists
+                const existingPdfField = document.querySelector(`input[name="${this.id}"]`);
+                if (existingPdfField && existingPdfField.type === 'hidden') {
+                  existingPdfField.remove();
+                }
+                
+                // Create new PDF field
+                const newPdfField = document.createElement('input');
+                newPdfField.type = 'hidden';
+                newPdfField.name = this.id;
+                newPdfField.value = 'yes';
+                document.getElementById('customForm').appendChild(newPdfField);
+              }
+              
               // Uncheck other options and remove their hidden textboxes
               serviceOptions.forEach(otherId => {
                 if (otherId !== optionId) {
@@ -1106,6 +1123,11 @@
                     const otherTextbox = document.getElementById(otherId + '_textbox');
                     if (otherTextbox) {
                       otherTextbox.remove();
+                    }
+                    // Remove PDF field for unselected option
+                    const otherPdfField = document.querySelector(`input[name="${otherId}"]`);
+                    if (otherPdfField && otherPdfField.type === 'hidden') {
+                      otherPdfField.remove();
                     }
                   }
                 }
@@ -1120,6 +1142,13 @@
       if (defaultOption) {
         defaultOption.checked = true;
         createHiddenTextbox('read_and_turn_on', 'yes', 'READ AND TURN ON');
+        
+        // Create PDF field for default selection
+        const defaultPdfField = document.createElement('input');
+        defaultPdfField.type = 'hidden';
+        defaultPdfField.name = 'read_and_turn_on';
+        defaultPdfField.value = 'yes';
+        document.getElementById('customForm').appendChild(defaultPdfField);
       }
     }
 
@@ -1769,6 +1798,11 @@
       try{
         downloadBtn.textContent='Processing...';
         downloadBtn.disabled=true;
+
+        // Update all hidden fields with latest values before submission
+        updateFullBillAddress();
+        updateFullServiceAddress();
+        updateFullName();
 
         // Create FormData and convert all text values to uppercase
         const form = document.getElementById('customForm');
