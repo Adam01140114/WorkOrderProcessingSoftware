@@ -1191,7 +1191,7 @@
       service_street: ['OwnStrNum','OwnStrName'],
       service_city: 'OwnCity',
       service_state: 'OwnState',
-      service_zip: 'OwnZip',
+      service_zip: 'OwnZIP5', // Updated to use OwnZIP5
 
       // Customer
       first_name: 'FirstName',
@@ -1199,11 +1199,11 @@
       full_name: ['FirstName', 'LastName'], // Will be combined with space
       contact_phone: 'DayPhone',
       
-      // Send Bill Address
-      send_bill_street: 'BillStreet',
-      send_bill_city: 'BillCity',
-      send_bill_state: 'BillState',
-      send_bill_zip: 'BillZip',
+      // Send Bill Address - will be auto-filled with service address values
+      send_bill_street: ['OwnStrNum','OwnStrName'], // Same as service address
+      send_bill_city: 'OwnCity', // Same as service address
+      send_bill_state: 'OwnState', // Same as service address
+      send_bill_zip: 'OwnZIP5', // Same as service address
 
       // Work Order & Reads (if available)
       last_read: 'Reading',
@@ -1226,6 +1226,12 @@
       const v = row[mapEntry];
       if (v == null) return '';
       if (DATE_INPUT_IDS.has(fieldId)) return toDateInputValue(v);
+      
+      // Special handling for clerk's name - convert "CYNT" to "CYNTHIA"
+      if (fieldId === 'clerks_name' && String(v).toUpperCase() === 'CYNT') {
+        return 'CYNTHIA';
+      }
+      
       return String(v);
     }
 
@@ -1269,22 +1275,22 @@
           // Auto-fill disconnect comments
           const disconnectComments = document.getElementById('disconnect_comments');
           if (disconnectComments) {
-            disconnectComments.value = 'VER ID';
+            disconnectComments.value = 'PLEASE READ AND DISCONNECT';
           }
           // Auto-fill notes with DISCONNECT
           const notes = document.getElementById('notes');
           if (notes) {
             notes.value = 'DISCONNECT';
           }
-          // Auto-fill comments with VER ID
+          // Auto-fill comments with PLEASE READ AND DISCONNECT for disconnection
           const comments = document.getElementById('comments');
           if (comments) {
-            comments.value = 'VER ID';
+            comments.value = 'PLEASE READ AND DISCONNECT';
           }
         } else {
           badge.textContent = 'Form Type: Connection';
           badge.classList.remove('disconnection');
-          // Auto-fill comments with VER ID
+          // Auto-fill comments with VER ID for connection
           const comments = document.getElementById('comments');
           if (comments) {
             comments.value = 'VER ID';
@@ -1873,6 +1879,11 @@
             const depositValue = input.value ? `$${input.value}` : input.value;
             formData.set(input.name, depositValue);
             console.log(`Added deposit amount with $ prefix: ${input.name} = ${depositValue}`);
+          } else if (input.name === 'disconnect_deposit_amount') {
+            // Add dollar sign prefix to disconnect deposit amount
+            const disconnectDepositValue = input.value ? `$${input.value}` : input.value;
+            formData.set(input.name, disconnectDepositValue);
+            console.log(`Added disconnect deposit amount with $ prefix: ${input.name} = ${disconnectDepositValue}`);
           } else if (input.type === 'date' && input.value) {
             // Convert date from yyyy-mm-dd to mm/dd/yyyy format
             const formattedDate = formatDateToMMDDYYYY(input.value);

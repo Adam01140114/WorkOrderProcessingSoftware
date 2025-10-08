@@ -82,9 +82,8 @@ app.use(express.static(path.join(__dirname, 'public')));
 // ────────────────────────────────────────────────────────────
 // Routes
 // ────────────────────────────────────────────────────────────
-app.get('/', (_, res) => {
-  res.send('Welcome to the PDF Editing Server');
-});
+// Remove the root route handler to allow static file serving
+// The static middleware will serve index.html from the public directory
 
 // Admin authentication endpoint
 app.post('/api/admin-login', (req, res) => {
