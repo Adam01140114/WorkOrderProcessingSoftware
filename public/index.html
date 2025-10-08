@@ -879,21 +879,19 @@
         <!-- Deposit / Payment -->
         <div class="section" data-for="connection">
           <h2>Deposit & Payment</h2>
-          <div class="grid cols-3">
+          <div class="grid cols-2">
             <div class="field"><label for="deposit_amount">Deposit</label><input type="number" id="deposit_amount" name="deposit_amount" step="0.01" value="150"></div>
-             <div class="field">
-               <label>Payment Method</label>
-               <div class="inline">
-                 <label class="chip"><input type="checkbox" id="payment_method_cash" name="payment_method_cash" value="yes"> Cash</label>
-                 <label class="chip"><input type="checkbox" id="payment_method_check" name="payment_method_check" value="yes"> Check</label>
-               </div>
-             </div>
             <div class="field"><label for="check_number">Check #</label><input type="text" id="check_number" name="check_number" placeholder="If paid by check"></div>
           </div>
           <div class="inline" style="margin-top: 10px;">
             <span class="muted">Deposit Type:</span>
             <label class="chip"><input type="checkbox" id="deposit_type_establish" name="deposit_type_establish" value="yes"> Re-establish Credit deposit</label>
             <label class="chip"><input type="checkbox" id="deposit_type_initial" name="deposit_type_initial" value="yes"> Initial Deposit</label>
+          </div>
+          <div class="inline" style="margin-top: 10px;">
+            <span class="muted">Payment Method:</span>
+            <label class="chip"><input type="checkbox" id="payment_method_cash" name="payment_method_cash" value="yes"> Cash</label>
+            <label class="chip"><input type="checkbox" id="payment_method_check" name="payment_method_check" value="yes"> Check</label>
           </div>
         </div>
 
@@ -1018,6 +1016,9 @@
        // Set up payment method mutual exclusivity
        setupPaymentMethodExclusivity();
        
+       // Set up contract relationship mutual exclusivity
+       setupContractRelationshipExclusivity();
+       
        // Set up full service address
        updateFullServiceAddress();
        
@@ -1069,6 +1070,32 @@
       }
       
       input.value = value;
+    }
+
+    // Phone number formatting function for Excel autofill
+    function formatPhoneNumberFromExcel(phoneValue) {
+      if (!phoneValue || phoneValue.trim() === '') return '';
+      
+      // Remove all non-numeric characters
+      let value = phoneValue.replace(/\D/g, '');
+      
+      // If it's already formatted or empty, return as-is
+      if (value.length === 0) return '';
+      
+      // Format as (xxx) xxx-xxxx
+      if (value.length >= 10) {
+        // Take last 10 digits if more than 10
+        value = value.slice(-10);
+        return `(${value.slice(0, 3)}) ${value.slice(3, 6)}-${value.slice(6, 10)}`;
+      } else if (value.length >= 6) {
+        return `(${value.slice(0, 3)}) ${value.slice(3, 6)}-${value.slice(6)}`;
+      } else if (value.length >= 3) {
+        return `(${value.slice(0, 3)}) ${value.slice(3)}`;
+      } else if (value.length > 0) {
+        return `(${value}`;
+      }
+      
+      return phoneValue; // Return original if can't format
     }
 
     // Set up phone formatting for all phone fields
@@ -1209,8 +1236,8 @@
       last_read: 'Reading',
       current_read: 'Usage',
 
-      // Misc
-      comments: 'Text194'
+      // Misc - REMOVED comments mapping to prevent Excel from overriding form type logic
+      // comments: 'Text194' // Commented out to prevent Excel override
     };
 
     const DATE_INPUT_IDS = new Set([
@@ -1230,6 +1257,11 @@
       // Special handling for clerk's name - convert "CYNT" to "CYNTHIA"
       if (fieldId === 'clerks_name' && String(v).toUpperCase() === 'CYNT') {
         return 'CYNTHIA';
+      }
+      
+      // Special handling for phone numbers - format as (xxx) xxx-xxxx
+      if (fieldId === 'contact_phone' || fieldId === 'emp_phone_main' || fieldId === 'spouse_emp_phone') {
+        return formatPhoneNumberFromExcel(String(v));
       }
       
       return String(v);
@@ -1258,6 +1290,8 @@
     }
 
     function setFormMode(mode){
+      console.log('🔧 DEBUG: setFormMode called with mode:', mode);
+      
       const badge = document.getElementById('formTypeBadge');
       const formTypeContainer = document.getElementById('formTypeContainer');
       const form = document.getElementById('customForm');
@@ -1269,38 +1303,49 @@
       if (dragDropContainer) dragDropContainer.style.display = 'none';
       
       if (badge){
+        console.log('🔧 DEBUG: Badge element found, setting form type...');
         if (mode === 'disconnection'){
+          console.log('🔧 DEBUG: Setting DISCONNECTION mode');
           badge.textContent = 'Form Type: Disconnection';
           badge.classList.add('disconnection');
           // Auto-fill disconnect comments
           const disconnectComments = document.getElementById('disconnect_comments');
           if (disconnectComments) {
             disconnectComments.value = 'PLEASE READ AND DISCONNECT';
+            console.log('🔧 DEBUG: Set disconnect_comments to:', disconnectComments.value);
           }
           // Auto-fill notes with DISCONNECT
           const notes = document.getElementById('notes');
           if (notes) {
             notes.value = 'DISCONNECT';
+            console.log('🔧 DEBUG: Set notes to:', notes.value);
           }
           // Auto-fill comments with PLEASE READ AND DISCONNECT for disconnection
           const comments = document.getElementById('comments');
           if (comments) {
             comments.value = 'PLEASE READ AND DISCONNECT';
+            console.log('🔧 DEBUG: Set comments to:', comments.value);
           }
         } else {
+          console.log('🔧 DEBUG: Setting CONNECTION mode');
           badge.textContent = 'Form Type: Connection';
           badge.classList.remove('disconnection');
           // Auto-fill comments with VER ID for connection
           const comments = document.getElementById('comments');
           if (comments) {
             comments.value = 'VER ID';
+            console.log('🔧 DEBUG: Set comments to:', comments.value);
           }
           // Auto-fill notes with CONNECT
           const notes = document.getElementById('notes');
           if (notes) {
             notes.value = 'CONNECT';
+            console.log('🔧 DEBUG: Set notes to:', notes.value);
           }
         }
+        console.log('🔧 DEBUG: Badge textContent is now:', badge.textContent);
+      } else {
+        console.log('🔧 DEBUG: Badge element NOT found!');
       }
       document.querySelectorAll('[data-for]')
         .forEach(el=>{
@@ -1324,14 +1369,26 @@
 
         // Determine form mode from tblWorkType.Descr
         const typeDescr = r['tblWorkType.Descr'] || r['Work Type'] || '';
+        console.log('🔍 DEBUG: Excel form type detection:');
+        console.log('  - tblWorkType.Descr:', r['tblWorkType.Descr']);
+        console.log('  - Work Type:', r['Work Type']);
+        console.log('  - typeDescr:', typeDescr);
+        console.log('  - typeDescr.toUpperCase():', String(typeDescr).toUpperCase());
+        console.log('  - includes DISC:', String(typeDescr).toUpperCase().includes('DISC'));
+        
         const mode = (String(typeDescr).toUpperCase().includes('DISC')) ? 'disconnection' : 'connection';
+        console.log('  - Final mode determined:', mode);
+        
         setFormMode(mode);
 
         Object.entries(EXCEL_TO_FORM_MAP).forEach(([fieldId, mapEntry])=>{
           const el = document.getElementById(fieldId);
           if (!el) return;
           const val = getMappedValue(r, mapEntry, fieldId);
-          if (val !== undefined){ el.value = val; }
+          if (val !== undefined){ 
+            el.value = val;
+            console.log(`🔧 DEBUG: Set ${fieldId} to:`, val);
+          }
         });
 
         // Keep derived hidden address updated
@@ -1340,7 +1397,9 @@
         // Keep derived full name updated
         updateFullName();
 
-        console.log('Excel autofill complete.');
+        console.log('🔧 DEBUG: Excel autofill complete.');
+        console.log('🔧 DEBUG: Final comments value after autofill:', document.getElementById('comments').value);
+        console.log('🔧 DEBUG: Final badge text after autofill:', document.getElementById('formTypeBadge').textContent);
       }catch(err){
         console.error('Failed to read Excel:', err);
       }finally{
@@ -1426,6 +1485,40 @@
              } else {
                // If this checkbox is unchecked, remove the payment method textbox
                removeHiddenTextbox('payment_method_textbox');
+             }
+           });
+         }
+       });
+     }
+
+     // Contract relationship mutual exclusivity
+     function setupContractRelationshipExclusivity() {
+       const contractRelationshipCheckboxes = [
+         document.getElementById('owner'),
+         document.getElementById('tenant'),
+         document.getElementById('real_estate_agent'),
+         document.getElementById('property_manager')
+       ];
+
+       contractRelationshipCheckboxes.forEach(checkbox => {
+         if (checkbox) {
+           checkbox.addEventListener('change', function() {
+             if (this.checked) {
+               // Uncheck all other contract relationship checkboxes
+               contractRelationshipCheckboxes.forEach(otherCheckbox => {
+                 if (otherCheckbox !== this && otherCheckbox.checked) {
+                   otherCheckbox.checked = false;
+                   // Remove hidden textbox for unchecked option
+                   removeHiddenTextbox(otherCheckbox.name + '_textbox');
+                 }
+               });
+               
+               // Create hidden textbox for the selected relationship
+               const displayText = this.nextSibling.textContent.trim().toUpperCase();
+               createHiddenTextbox(this.name, this.value, displayText);
+             } else {
+               // If this checkbox is unchecked, remove its hidden textbox
+               removeHiddenTextbox(this.name + '_textbox');
              }
            });
          }
@@ -1696,7 +1789,11 @@
        document.getElementById('read_and_turn_on').checked = true;
        document.getElementById('notes').value = 'CONNECT';
        document.getElementById('remarks').value = 'All systems operational';
-       document.getElementById('comments').value = 'VER ID';
+       
+       // Set comments based on current form type
+       const formTypeBadge = document.getElementById('formTypeBadge');
+       const isDisconnection = formTypeBadge && formTypeBadge.textContent.includes('Disconnection');
+       document.getElementById('comments').value = isDisconnection ? 'PLEASE READ AND DISCONNECT' : 'VER ID';
 
       // Disconnection-specific fields (with safety checks)
       // These fields will be filled even if hidden, so they're ready when user switches to disconnection mode
